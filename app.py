@@ -1,21 +1,14 @@
-import os
-os.system('pip install opencv-python-headless numpy tensorflow tensorflow-lite')
-
-import numpy as np
 import streamlit as st
+import numpy as np
+import cv2
 import tensorflow.lite as tflite
 
 # Load the TFLite model with caching
 @st.cache_resource
 def load_tflite_model():
-    try:
-        interpreter = tflite.Interpreter(model_path="vegetable_classifier.tflite")
-        interpreter.allocate_tensors()
-        st.success("✅ Model Loaded Successfully!")
-        return interpreter
-    except Exception as e:
-        st.error(f"❌ Error loading model: {e}")
-        return None
+    interpreter = tflite.Interpreter(model_path="vegetable_classifier.tflite")
+    interpreter.allocate_tensors()
+    return interpreter
 
 # Load model
 model = load_tflite_model()
