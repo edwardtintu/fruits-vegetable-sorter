@@ -1,6 +1,6 @@
 import os
 os.system('pip install opencv-python-headless numpy tensorflow tensorflow-lite')
-import cv2
+
 import numpy as np
 import streamlit as st
 import tensorflow.lite as tflite
