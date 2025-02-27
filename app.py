@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-
+import cv2
 import tensorflow.lite as tflite
 
 # Load the TFLite model with caching
