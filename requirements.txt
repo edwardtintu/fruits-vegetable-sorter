@@ -1,1 +1,5 @@
+streamlit
+numpy
+opencv-python-headless
+tensorflow-cpu==2.9.0  # Or any lower version supported on Streamlit Cloud
 
