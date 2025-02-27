@@ -1,9 +1,1 @@
-streamlit
-tensorflow
-numpy
-opencv-python
-matplotlib
-pillow
-tensorflow-lite
-opencv-python-headless
-tflite-runtime
+
