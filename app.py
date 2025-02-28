@@ -16,6 +16,40 @@ model = load_tflite_model()
 # Class labels
 class_labels = ['Apple', 'Banana', 'Carrot', 'Orange', 'Potato', 'Radish', 'Tomato']
 
+# Custom CSS for better UI with black text
+st.markdown("""
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+        .stApp {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: black;
+            text-align: center;
+            font-size: 2.5em;
+        }
+        .uploadedImage {
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            padding: 10px;
+        }
+        .prediction {
+            font-size: 1.5em;
+            color: black;  /* Changed from white to black */
+            background-color: #d4edda;  /* Light green for better contrast */
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Function for image preprocessing
 def preprocess_image(img):
     try:
@@ -56,15 +90,18 @@ def process_and_predict(uploaded_file):
         # Preprocess Image
         img_original, img_enhanced, img_compressed, img_segmented, img_restored = preprocess_image(img)
 
-        # Display All Preprocessed Images
+        # Display All Preprocessed Images in Columns
+        st.subheader("📸 Image Preprocessing Results")
         col1, col2 = st.columns(2)
+
         with col1:
-            st.image(img_original, caption="📷 Original Image", use_column_width=True)
-            st.image(img_enhanced, caption="✨ Enhanced Image", use_column_width=True)
-            st.image(img_compressed, caption="📦 Compressed Image", use_column_width=True)
+            st.image(img_original, caption="📷 Original Image", use_container_width=True)
+            st.image(img_enhanced, caption="✨ Enhanced Image", use_container_width=True)
+            st.image(img_compressed, caption="📦 Compressed Image", use_container_width=True)
+
         with col2:
-            st.image(img_segmented, caption="🎭 Segmented Image", use_column_width=True, channels="GRAY")
-            st.image(img_restored, caption="🔄 Restored Image", use_column_width=True)
+            st.image(img_segmented, caption="🎭 Segmented Image", use_container_width=True, channels="GRAY")
+            st.image(img_restored, caption="🔄 Restored Image", use_container_width=True)
 
         # Resize and Normalize for Model
         img_resized = cv2.resize(img_original, (224, 224)) / 255.0
@@ -87,15 +124,30 @@ def process_and_predict(uploaded_file):
         predicted_class = np.argmax(predictions)
 
         # Display Final Prediction
-        st.success(f"🟢 Predicted Class: **{class_labels[predicted_class]}**")
+        st.markdown(f'<div class="prediction">🟢 Predicted Class: **{class_labels[predicted_class]}**</div>', unsafe_allow_html=True)
+    
     except Exception as e:
         st.error(f"❌ Error processing image: {e}")
 
-# Streamlit UI
+# Sidebar UI
+with st.sidebar:
+    st.header("ℹ️ About This App")
+    st.write("""
+    This **AI-powered** app can classify **fruits & vegetables** using a **TensorFlow Lite model**.
+    
+    📌 Features:
+    - **Preprocessing Techniques:** Image Enhancement, Compression, Segmentation, and Restoration
+    - **Real-time Predictions** using a lightweight AI model
+    - **User-friendly Interface** with a modern design
+    """)
+
+# Streamlit UI Main Title
 st.title("🥦 Vegetable & Fruit Classifier 🍎")
 st.write("📌 Upload an image to classify the vegetable or fruit!")
 
+# File uploader
 uploaded_file = st.file_uploader("📂 Choose an image...", type=["jpg", "png", "jpeg"])
 
+# Process Image
 if uploaded_file is not None:
     process_and_predict(uploaded_file)
