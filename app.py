@@ -40,8 +40,8 @@ st.markdown("""
         }
         .prediction {
             font-size: 1.5em;
-            color: black;  /* Changed from white to black */
-            background-color: #d4edda;  /* Light green for better contrast */
+            color: black;
+            background-color: #d4edda;
             padding: 10px;
             border-radius: 10px;
             text-align: center;
@@ -50,7 +50,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function for image preprocessing
+# Image preprocessing function
 def preprocess_image(img):
     try:
         # Convert to RGB
@@ -61,93 +61,49 @@ def preprocess_image(img):
         img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
         img_enhanced = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
 
-        # Image Compression (Resizing to lower size)
-        img_compressed = cv2.resize(img_rgb, (150, 150))
+        # Image Compression (Resizing to 150x150)
+        img_resized = cv2.resize(img_enhanced, (150, 150))
 
-        # Image Segmentation (Thresholding)
-        gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-        _, img_segmented = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+        # Image Segmentation (Grayscale + Threshold)
+        gray = cv2.cvtColor(img_resized, cv2.COLOR_RGB2GRAY)
+        _, segmented = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
-        # Image Restoration (Denoising)
-        img_restored = cv2.fastNlMeansDenoisingColored(img_rgb, None, 10, 10, 7, 21)
+        # Normalize and reshape
+        img_array = img_resized.astype(np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
-        return img_rgb, img_enhanced, img_compressed, img_segmented, img_restored
+        return img_array
     except Exception as e:
-        st.error(f"❌ Error in preprocessing: {e}")
-        return None, None, None, None, None
+        st.error(f"Error during preprocessing: {e}")
+        return None
 
-# Function to process image and predict using TFLite model
-def process_and_predict(uploaded_file):
-    try:
-        # Read file and convert to OpenCV format
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+# Streamlit UI
+st.title("Vegetable/Fruit Classifier 🍎🥕🍌")
 
-        if img is None:
-            st.error("❌ Error: Unable to read the uploaded image.")
-            return
+uploaded_file = st.file_uploader("Upload an image of a vegetable or fruit", type=["jpg", "jpeg", "png"])
 
-        # Preprocess Image
-        img_original, img_enhanced, img_compressed, img_segmented, img_restored = preprocess_image(img)
+if uploaded_file is not None:
+    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+    image = cv2.imdecode(file_bytes, 1)
 
-        # Display All Preprocessed Images in Columns
-        st.subheader("📸 Image Preprocessing Results")
-        col1, col2 = st.columns(2)
+    st.image(image, channels="BGR", caption="Uploaded Image", use_column_width=True)
 
-        with col1:
-            st.image(img_original, caption="📷 Original Image", use_container_width=True)
-            st.image(img_enhanced, caption="✨ Enhanced Image", use_container_width=True)
-            st.image(img_compressed, caption="📦 Compressed Image", use_container_width=True)
+    # Preprocess image
+    processed_image = preprocess_image(image)
 
-        with col2:
-            st.image(img_segmented, caption="🎭 Segmented Image", use_container_width=True, channels="GRAY")
-            st.image(img_restored, caption="🔄 Restored Image", use_container_width=True)
-
-        # Resize and Normalize for Model
-        img_resized = cv2.resize(img_original, (224, 224)) / 255.0
-        img_array = np.expand_dims(img_resized, axis=0).astype(np.float32)
-
-        if model is None:
-            st.error("❌ Model is not loaded properly.")
-            return
-
-        # Get input/output details
+    if processed_image is not None:
+        # Run inference
         input_details = model.get_input_details()
         output_details = model.get_output_details()
 
-        # Run inference
-        model.set_tensor(input_details[0]['index'], img_array)
+        model.set_tensor(input_details[0]['index'], processed_image)
         model.invoke()
-        predictions = model.get_tensor(output_details[0]['index'])
 
-        # Get predicted class
-        predicted_class = np.argmax(predictions)
+        # Get prediction
+        output_data = model.get_tensor(output_details[0]['index'])
+        predicted_index = np.argmax(output_data)
+        confidence = np.max(output_data) * 100
+        prediction = class_labels[predicted_index]
 
-        # Display Final Prediction
-        st.markdown(f'<div class="prediction">🟢 Predicted Class: **{class_labels[predicted_class]}**</div>', unsafe_allow_html=True)
-    
-    except Exception as e:
-        st.error(f"❌ Error processing image: {e}")
-
-# Sidebar UI
-with st.sidebar:
-    st.header("ℹ️ About This App")
-    st.write("""
-    This **AI-powered** app can classify **fruits & vegetables** using a **TensorFlow Lite model**.
-    
-    📌 Features:
-    - **Preprocessing Techniques:** Image Enhancement, Compression, Segmentation, and Restoration
-    - **Real-time Predictions** using a lightweight AI model
-    - **User-friendly Interface** with a modern design
-    """)
-
-# Streamlit UI Main Title
-st.title("🥦 Vegetable & Fruit Classifier 🍎")
-st.write("📌 Upload an image to classify the vegetable or fruit!")
-
-# File uploader
-uploaded_file = st.file_uploader("📂 Choose an image...", type=["jpg", "png", "jpeg"])
-
-# Process Image
-if uploaded_file is not None:
-    process_and_predict(uploaded_file)
+        # Show prediction
+        st.markdown(f'<div class="prediction">Prediction: {prediction} ({confidence:.2f}%)</div>', unsafe_allow_html=True)
